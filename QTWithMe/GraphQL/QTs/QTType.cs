@@ -45,10 +45,10 @@ namespace QTWithMe.GraphQL.QTs
                 return await context.Users.FindAsync(new object[] {qt.UserId}, cancellationToken);
             }
 
-            public async Task<IEnumerable<Comment>> GetComments(User student, [ScopedService] AppDbContext context,
+            public async Task<IEnumerable<Comment>> GetComments(QT qt, [ScopedService] AppDbContext context,
                 CancellationToken cancellationToken)
             {
-                return await context.Comments.Where(c => c.QtId == student.Id).ToArrayAsync(cancellationToken);
+                return await context.Comments.Where(c => c.QtId == qt.Id).ToArrayAsync(cancellationToken);
             }
         }
     }
