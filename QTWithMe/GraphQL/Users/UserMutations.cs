@@ -1,10 +1,21 @@
+using System;
+using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Security.Claims;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using HotChocolate;
+using HotChocolate.AspNetCore;
+using HotChocolate.AspNetCore.Authorization;
 using HotChocolate.Types;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Octokit;
 using QTWithMe.Data;
 using QTWithMe.Extensions;
-using QTWithMe.Models;
+using User = QTWithMe.Models.User;
 
 namespace QTWithMe.GraphQL.Users
 {
@@ -12,35 +23,76 @@ namespace QTWithMe.GraphQL.Users
     public class UserMutations
     {
         [UseAppDbContext]
-        public async Task<User> AddUserAsync(AddUserInput input, [ScopedService] AppDbContext context,
-            CancellationToken cancellationToken)
+        [Authorize]
+        public async Task<User> EditUserAsync(EditUserInput input, ClaimsPrincipal claimsPrincipal, 
+            [ScopedService] AppDbContext context, CancellationToken cancellationToken)
         {
-            var user = new User
-            {
-                Name = input.Name,
-                GitHub = input.GitHub,
-                ImageURI = input.ImageURI,
-            };
+            var userIdStr = claimsPrincipal.Claims.First(c => c.Type == "userId").Value;
+            var user = await context.Users.FindAsync(int.Parse(userIdStr), cancellationToken);
 
-            context.Users.Add(user);
+            user.Name = input.Name ?? user.Name;
+            user.ImageURI = input.ImageURI ?? user.ImageURI;
+
             await context.SaveChangesAsync(cancellationToken);
 
             return user;
         }
 
         [UseAppDbContext]
-        public async Task<User> EditUserAsync(EditUserInput input, [ScopedService] AppDbContext context,
+        public async Task<LoginPayload> LoginAsync(LoginInput input, [ScopedService] AppDbContext context,
             CancellationToken cancellationToken)
         {
-            var user = await context.Users.FindAsync(int.Parse(input.UserId));
+            var client = new GitHubClient(new ProductHeaderValue("QTWithMe"));
 
-            user.Name = input.Name ?? user.Name;
-            user.GitHub = input.GitHub ?? user.GitHub;
-            user.ImageURI = input.ImageURI ?? user.ImageURI;
+            var request = new OauthTokenRequest(Startup.Configuration["Github:ClientId"],
+                Startup.Configuration["Github:ClientSecret"], input.Code);
+            var tokenInfo = await client.Oauth.CreateAccessToken(request);
 
-            await context.SaveChangesAsync(cancellationToken);
+            if (tokenInfo.AccessToken == null)
+            {
+                throw new GraphQLRequestException(ErrorBuilder.New()
+                    .SetMessage("Bad Code")
+                    .SetCode("AUTH_NOT_AUTHENTICATED")
+                    .Build());
+            }
 
-            return user;
+            client.Credentials = new Credentials(tokenInfo.AccessToken);
+            var githubUser = await client.User.Current();
+            
+            var user = await context.Users.FirstOrDefaultAsync(u => u.GitHub == githubUser.Login, cancellationToken);
+
+            if (user == null)
+            {
+                user = new User
+                {
+                    Name = githubUser.Name ?? githubUser.Login,
+                    GitHub = githubUser.Login,
+                    ImageURI = githubUser.AvatarUrl
+                };
+
+                context.Users.Add(user);
+                await context.SaveChangesAsync(cancellationToken);
+            }
+            
+            // authentication successful so generate jwt token
+            var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Startup.Configuration["JWT:Secret"]));
+            var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
+
+            var claims = new List<Claim>
+            {
+                new("userId", user.Id.ToString()),
+            };
+
+            var jwtToken = new JwtSecurityToken(
+                "QTWithMe",
+                "QTWithMe-User",
+                claims,
+                expires: DateTime.Now.AddDays(90),
+                signingCredentials: credentials);
+
+            string token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
+
+            return new LoginPayload(user, token);
         }
     }
 }

@@ -1,8 +1,12 @@
 using System;
+using System.Linq;
 using System.Net;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using HotChocolate;
+using HotChocolate.AspNetCore;
+using HotChocolate.AspNetCore.Authorization;
 using HotChocolate.Types;
 using Newtonsoft.Json;
 using QTWithMe.Data;
@@ -15,9 +19,13 @@ namespace QTWithMe.GraphQL.QTs
     public class QTMutations
     {
         [UseAppDbContext]
-        public async Task<QT> AddQTAsync(AddQTInput input, [ScopedService] AppDbContext context,
-            CancellationToken cancellationToken)
+        [Authorize]
+        public async Task<QT> AddQTAsync(AddQTInput input, ClaimsPrincipal claimsPrincipal,
+            [ScopedService] AppDbContext context, CancellationToken cancellationToken)
         {
+            string userIdStr = claimsPrincipal.Claims.First(c => c.Type == "userId").Value;
+
+            // Retrieve passage text from ESV Bible Public API.
             string passageText = FetchPassageText(input.Passage);
 
             var qt = new QT
@@ -25,7 +33,7 @@ namespace QTWithMe.GraphQL.QTs
                 Passage = input.Passage,
                 PassageText = passageText,
                 Content = "",
-                UserId = int.Parse(input.UserId),
+                UserId = int.Parse(userIdStr),
                 Modified = DateTime.Now,
                 Created = DateTime.Now,
             };
@@ -37,10 +45,20 @@ namespace QTWithMe.GraphQL.QTs
         }
 
         [UseAppDbContext]
-        public async Task<QT> EditQTAsync(EditQTInput input, [ScopedService] AppDbContext context,
-            CancellationToken cancellationToken)
+        [Authorize]
+        public async Task<QT> EditQTAsync(EditQTInput input, ClaimsPrincipal claimsPrincipal,
+            [ScopedService] AppDbContext context, CancellationToken cancellationToken)
         {
+            var userIdStr = claimsPrincipal.Claims.First(c => c.Type == "userId").Value;
             var qt = await context.QTs.FindAsync(int.Parse(input.QtId));
+
+            if (qt.UserId != int.Parse(userIdStr))
+            {
+                throw new GraphQLRequestException(ErrorBuilder.New()
+                    .SetMessage("Not owned by the current user.")
+                    .SetCode("AUTH_NOT_AUTHORIZED")
+                    .Build());
+            }
 
             if (input.Passage != null)
             {

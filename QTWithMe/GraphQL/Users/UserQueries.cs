@@ -1,6 +1,8 @@
 using System.Linq;
+using System.Security.Claims;
 using HotChocolate;
 using HotChocolate.Types;
+using Microsoft.AspNetCore.Authorization;
 using QTWithMe.Data;
 using QTWithMe.Extensions;
 using QTWithMe.Models;
@@ -21,6 +23,15 @@ namespace QTWithMe.GraphQL.Users
         public User GetUser(int id, [ScopedService] AppDbContext context)
         {
             return context.Users.Find(id);
+        }
+
+        [UseAppDbContext]
+        [Authorize]
+        public User GetSelf(ClaimsPrincipal claimsPrincipal, [ScopedService] AppDbContext context)
+        {
+            var userIdStr = claimsPrincipal.Claims.First(c => c.Type == "userId").Value;
+
+            return context.Users.Find(int.Parse(userIdStr));
         }
     }
 }
