@@ -38,6 +38,10 @@ namespace QTWithMe
                 .AddQueryType(d => d.Name("Query"))
                     .AddTypeExtension<QTQueries>()
                     .AddTypeExtension<UserQueries>()
+                .AddMutationType(d => d.Name("Mutation"))
+                    .AddTypeExtension<UserMutations>()
+                    .AddTypeExtension<QTMutations>()
+                    .AddTypeExtension<CommentMutations>()
                 .AddType<QTType>()
                 .AddType<UserType>()
                 .AddType<CommentType>();
