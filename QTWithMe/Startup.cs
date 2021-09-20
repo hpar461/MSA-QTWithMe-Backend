@@ -11,6 +11,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using QTWithMe.Data;
+using QTWithMe.GraphQL.Comments;
+using QTWithMe.GraphQL.QTs;
 using QTWithMe.GraphQL.Users;
 
 namespace QTWithMe
@@ -34,7 +36,11 @@ namespace QTWithMe
             services
                 .AddGraphQLServer()
                 .AddQueryType(d => d.Name("Query"))
-                .AddTypeExtension<UserQueries>();
+                    .AddTypeExtension<QTQueries>()
+                    .AddTypeExtension<UserQueries>()
+                .AddType<QTType>()
+                .AddType<UserType>()
+                .AddType<CommentType>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

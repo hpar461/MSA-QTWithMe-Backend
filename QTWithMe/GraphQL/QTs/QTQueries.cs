@@ -5,22 +5,22 @@ using QTWithMe.Data;
 using QTWithMe.Extensions;
 using QTWithMe.Models;
 
-namespace QTWithMe.GraphQL.Users
+namespace QTWithMe.GraphQL.QTs
 {
     [ExtendObjectType(name: "Query")]
-    public class UserQueries
+    public class QTQueries
     {
         [UseAppDbContext]
         [UsePaging]
-        public IQueryable<User> GetUsers([ScopedService] AppDbContext context)
+        public IQueryable<QT> GetQTs([ScopedService] AppDbContext context)
         {
-            return context.Users;
+            return context.QTs.OrderBy(q => q.Created);
         }
 
         [UseAppDbContext]
-        public User GetUser(int id, [ScopedService] AppDbContext context)
+        public QT GetQT(int id, [ScopedService] AppDbContext context)
         {
-            return context.Users.Find(id);
+            return context.QTs.Find(id);
         }
     }
 }
