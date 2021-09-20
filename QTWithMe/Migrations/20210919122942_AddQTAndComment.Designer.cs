@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using QTWithMe.Data;
 
 namespace QTWithMe.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20210919122942_AddQTAndComment")]
+    partial class AddQTAndComment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -36,7 +38,7 @@ namespace QTWithMe.Migrations
                     b.Property<DateTime>("Modified")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("QtId")
+                    b.Property<int>("QTId")
                         .HasColumnType("int");
 
                     b.Property<int>("UserId")
@@ -44,7 +46,7 @@ namespace QTWithMe.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("QtId");
+                    b.HasIndex("QTId");
 
                     b.HasIndex("UserId");
 
@@ -109,9 +111,9 @@ namespace QTWithMe.Migrations
 
             modelBuilder.Entity("QTWithMe.Models.Comment", b =>
                 {
-                    b.HasOne("QTWithMe.Models.QT", "Qt")
+                    b.HasOne("QTWithMe.Models.QT", "QT")
                         .WithMany("Comments")
-                        .HasForeignKey("QtId")
+                        .HasForeignKey("QTId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -121,7 +123,7 @@ namespace QTWithMe.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.Navigation("Qt");
+                    b.Navigation("QT");
 
                     b.Navigation("User");
                 });
@@ -129,7 +131,7 @@ namespace QTWithMe.Migrations
             modelBuilder.Entity("QTWithMe.Models.QT", b =>
                 {
                     b.HasOne("QTWithMe.Models.User", "User")
-                        .WithMany("Qts")
+                        .WithMany("QTs")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -146,7 +148,7 @@ namespace QTWithMe.Migrations
                 {
                     b.Navigation("Comments");
 
-                    b.Navigation("Qts");
+                    b.Navigation("QTs");
                 });
 #pragma warning restore 612, 618
         }

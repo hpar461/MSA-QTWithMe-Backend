@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace QTWithMe.Models
@@ -14,5 +15,10 @@ namespace QTWithMe.Models
         public string GitHub { get; set; }
         
         public string ImageURI { get; set; }
+
+        public ICollection<QT> Qts { get; set; } = new List<QT>();
+
+        public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+
     }
 }
