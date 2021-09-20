@@ -16,13 +16,13 @@ namespace QTWithMe.GraphQL.Comments
 
             descriptor
                 .Field(s => s.Qt)
-                .ResolveWith<Resolvers>(r => r.GetProject(default!, default!, default))
+                .ResolveWith<Resolvers>(r => r.GetQT(default!, default!, default))
                 .UseDbContext<AppDbContext>()
                 .Type<NonNullType<CommentType>>();
 
             descriptor
                 .Field(s => s.User)
-                .ResolveWith<Resolvers>(r => r.GetStudent(default!, default!, default))
+                .ResolveWith<Resolvers>(r => r.GetUser(default!, default!, default))
                 .UseDbContext<AppDbContext>()
                 .Type<NonNullType<CommentType>>();
 
@@ -33,13 +33,13 @@ namespace QTWithMe.GraphQL.Comments
 
         private class Resolvers
         {
-            public async Task<QT> GetProject(Comment comment, [ScopedService] AppDbContext context,
+            public async Task<QT> GetQT(Comment comment, [ScopedService] AppDbContext context,
                 CancellationToken cancellationToken)
             {
                 return await context.QTs.FindAsync(new object[] { comment.QtId }, cancellationToken);
             }
 
-            public async Task<User> GetStudent(Comment comment, [ScopedService] AppDbContext context,
+            public async Task<User> GetUser(Comment comment, [ScopedService] AppDbContext context,
                 CancellationToken cancellationToken)
             {
                 return await context.Users.FindAsync(new object[] { comment.UserId }, cancellationToken);
